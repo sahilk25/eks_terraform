@@ -1,0 +1,71 @@
+# ---
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: jenkins
+# ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: jenkins
+  name: jenkins
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:lts-jdk11
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: efs-claim
+          mountPath: /var/jenkins_home
+      volumes:
+      - name: efs-claim
+        persistentVolumeClaim:
+           claimName: efs-claim
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: jenkins
+  name: jenkins
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: jen-port
+  selector:
+    app: jenkins
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: jenkins
+  name: ingress-jenkins
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: jenkins
+              port:
+                number: 8080

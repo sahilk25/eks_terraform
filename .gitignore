@@ -1,0 +1,3 @@
+code/.terraform*
+code/terraform.tfstate*
+code/notes
