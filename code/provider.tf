@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    backend "s3" {
-    bucket = "sahil_test_bucket_444"
-    key    = "terra/test.tfstate"
-    region = "eu-west-1"
-  }
+  #   backend "s3" {
+  #   bucket = "sahil_test_bucket_444"
+  #   key    = "terra/test.tfstate"
+  #   region = "eu-west-1"
+  # }
     aws = {
       source = "hashicorp/aws"
       version = "4.2.0"
