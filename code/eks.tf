@@ -20,34 +20,6 @@ module "jenkins_eks" {
   # iam_role_additional_policies = [aws_iam_policy.load_balancer.arn]
 
   # Extend node-to-node security group rules
-  node_security_group_additional_rules = {
-    ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
-    }
-    ingress_efs = {
-      description = "efs ingress"
-      protocol    = "tcp"
-      from_port   = 2049
-      to_port     = 2049
-      type        = "ingress"
-      cidr_blocks = [module.jenkins_vpc.vpc_cidr_block]
-      
-    }
-    egress_all = {
-      description      = "Node all egress"
-      protocol         = "-1"
-      from_port        = 0
-      to_port          = 0
-      type             = "egress"
-      cidr_blocks      = ["0.0.0.0/0"]
-      ipv6_cidr_blocks = ["::/0"]
-    }
-  }
 
 
   vpc_id     = module.jenkins_vpc.vpc_id
@@ -75,8 +47,10 @@ module "jenkins_eks" {
       min_size     = 1
       max_size     = 3
       desired_size = 2
-      
-    }
+      additional_security_group_ids = ["${aws_security_group.node_sg_efs.id}"]
+     
+        
+      }
   }
 
 
@@ -86,7 +60,25 @@ module "jenkins_eks" {
     Terraform   = "true"
   }
 }
+resource "aws_security_group" "node_sg_efs" {
+   name = "node_sg_efs"
+   description= "Allos inbound efs traffic from ec2"
+   vpc_id = module.jenkins_vpc.vpc_id
 
+   ingress {
+     security_groups = [aws_security_group.efs.id]
+     from_port = 2049
+     to_port = 2049 
+     protocol = "tcp"
+   }     
+        
+   egress {
+     security_groups = [aws_security_group.efs.id]
+     from_port = 0
+     to_port = 0
+     protocol = "-1"
+   }
+ }
 resource "aws_iam_policy" "load_balancer_policy" {
   name        = "${var.cluster_name}_load_balancer"
   description = "Worker policy for the ALB Ingress"
@@ -98,4 +90,29 @@ resource "aws_iam_policy" "efs_policy" {
   description = "policy for efs eks"
 
   policy = file("./policies/elasticcache_policy.json")
+}
+
+resource "aws_iam_policy" "autoscaler_policy" {
+  name        = "${var.cluster_name}_autoscaler"
+  description = "policy for autoscaler eks"
+
+  policy = file("./policies/autoscaler_policy.json")
+}
+
+resource "null_resource" "service_accounts" {
+  depends_on = [
+    module.jenkins_eks
+  ]
+  provisioner "local-exec" {
+    command = "chmod u+x ./scripts/service_accounts.sh && sh ./scripts/service_accounts.sh"
+    environment = {
+      CLUSTER_NAME = var.cluster_name
+      LOADBALANCER_POLICY_ARN = aws_iam_policy.load_balancer_policy.arn
+      EFS_POLICY_ARN = aws_iam_policy.efs_policy.arn
+      AUTOSCALER_POLICY_ARN = aws_iam_policy.autoscaler_policy.arn
+      NAMESPACE = "kube-system"
+      REGION_NAME = var.aws_region_name
+    }
+  }
+  
 }

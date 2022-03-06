@@ -10,7 +10,7 @@ metadata:
   namespace: jenkins
   name: jenkins
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: jenkins
@@ -24,6 +24,13 @@ spec:
         image: jenkins/jenkins:lts-jdk11
         ports:
         - containerPort: 8080
+        # readinessProbe:
+        #   httpGet:
+        #     scheme: HTTP
+        #     path: /login
+        #     port: 8080
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 5
         volumeMounts:
         - name: efs-claim
           mountPath: /var/jenkins_home
@@ -31,6 +38,7 @@ spec:
       - name: efs-claim
         persistentVolumeClaim:
            claimName: efs-claim
+      
 
 ---
 apiVersion: v1
@@ -39,7 +47,7 @@ metadata:
   namespace: jenkins
   name: jenkins
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
   - port: 8080
     targetPort: 8080
@@ -51,21 +59,23 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: jenkins
-  name: ingress-jenkins
+  name: jenkins-webops
   annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  ingressClassName: alb
+  tls:
+  - hosts:
+    - test-stage.webops6-test.info
+    secretName: test-tls-prod
   rules:
-    - http:
-        paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: jenkins
-              port:
-                number: 8080
+  - host: test-stage.webops6-test.info
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins
+            port:
+              number: 8080

@@ -8,6 +8,10 @@ provider "helm" {
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
+  depends_on = [
+    module.jenkins_eks,
+    null_resource.service_accounts
+  ]
   name       = "aws-load-balancer-controller"
   chart      = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
@@ -46,6 +50,10 @@ resource "helm_release" "aws-load-balancer-controller" {
 }
 
 resource "helm_release" "aws-efs-csi-driver" {
+  depends_on = [
+    module.jenkins_eks,
+    null_resource.service_accounts
+  ]
   name       = "aws-efs-csi-driver"
   chart      = "aws-efs-csi-driver"
   repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
@@ -53,11 +61,11 @@ resource "helm_release" "aws-efs-csi-driver" {
 #   version    = "1.0.2"
 
   set {
-    name  = "serviceAccount.name"
+    name  = "controller.serviceAccount.name"
     value = "efs-csi-controller-sa"
   }
   set {
-    name  = "serviceAccount.create"
+    name  = "controller.serviceAccount.create"
     value = "false"
   }
 #   set {
@@ -81,4 +89,55 @@ resource "helm_release" "aws-efs-csi-driver" {
     value = module.jenkins_vpc.vpc_id
   }
 
+}
+
+# resource "helm_release" "jenkins" {
+#   depends_on = [
+#     module.jenkins_eks,
+#     null_resource.service_accounts
+#     # kubernetes_persistent_volume_claim.efs-claim
+#   ]
+#   name       = "jenkins"
+#   repository = "https://charts.jenkins.io"
+#   chart      = "jenkins"
+#   namespace = "jenkins"
+
+#   values = [
+#     "${file("./jenkins/jenkins_helm_values.yaml")}"
+#   ]
+
+#   set_sensitive {
+#     name  = "controller.adminUser"
+#     value = data.aws_ssm_parameter.jenkins_user_name.value
+#   }
+#   set_sensitive {
+#     name = "controller.adminPassword"
+#     value = data.aws_ssm_parameter.jenkins_user_name.value
+#   }
+#   set_sensitive {
+#     name = "adminPassword"
+#     value = data.aws_ssm_parameter.jenkins_password.value
+#   }
+# }
+resource "helm_release" "cert-manager" {
+  depends_on = [
+    module.jenkins_eks,
+    null_resource.service_accounts
+  ]
+  name       = "jetstack"
+  chart      = "cert-manager"
+  repository = "https://charts.jetstack.io"
+  namespace = "cert-manager"
+  set {
+    name  = "create_namespace"
+    value = "true"
+  }
+  set {
+    name  = "installCRDs"
+    value = "true"
+  }
+  set {
+    name  = "prometheus.enabled"
+    value = "false"
+  }
 }
