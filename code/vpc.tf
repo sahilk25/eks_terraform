@@ -5,7 +5,7 @@ module "jenkins_vpc" {
   cidr = "10.0.0.0/16"
 
   azs             = data.aws_availability_zones.avz_list.zone_ids
-#   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+#   one subnet per avz
   private_subnets= [for i in range(length(data.aws_availability_zones.avz_list.zone_ids)): "10.0.${i+1}.0/24"]
   public_subnets  = [for i in range(length(data.aws_availability_zones.avz_list.zone_ids)): "10.0.${i+100}.0/24"]
 

@@ -90,7 +90,7 @@ resource "helm_release" "aws-efs-csi-driver" {
   }
 
 }
-
+# Issue in official jenkins chart
 # resource "helm_release" "jenkins" {
 #   depends_on = [
 #     module.jenkins_eks,

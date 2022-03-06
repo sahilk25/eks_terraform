@@ -1,5 +1,5 @@
 aws eks update-kubeconfig --region $REGION_NAME --name $CLUSTER_NAME
-
+#Need to add if else for env variables and logging
 eksctl create iamserviceaccount \
   --cluster=$CLUSTER_NAME \
   --namespace=$NAMESPACE \
