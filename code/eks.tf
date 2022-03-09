@@ -116,3 +116,20 @@ resource "null_resource" "service_accounts" {
   }
   
 }
+
+resource "aws_cloudwatch_metric_alarm" "node_autoscaling_cpu_alarm" {
+  alarm_name                = "node_autoscaling_cpu_alarm"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  statistic                 = "Average"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
+  insufficient_data_actions = []
+
+  dimensions = {
+    AutoScalingGroupName = module.jenkins_eks.eks_managed_node_groups.default.node_group_resources[0].autoscaling_groups[0].name
+  }
+}
