@@ -23,14 +23,33 @@ spec:
       - name: jenkins
         image: jenkins/jenkins:lts-jdk11
         ports:
-        - containerPort: 8080
-        # readinessProbe:
-        #   httpGet:
-        #     scheme: HTTP
-        #     path: /login
-        #     port: 8080
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 5
+        - name: httpport
+          containerPort: 8080
+        - name: jnlpport
+          containerPort: 50000
+        resources:
+          limits:
+            cpu: 800m
+            memory: 500Mi
+          requests:
+            cpu: 300m
+            memory: 300Mi
+        livenessProbe:
+          httpGet:
+            path: "/login"
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: "/login"
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         volumeMounts:
         - name: efs-claim
           mountPath: /var/jenkins_home
@@ -49,9 +68,12 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
-    name: jen-port
+    - name: httpport
+      port: 8080
+      targetPort: 8080
+    - name: jnlpport
+      port: 50000
+      targetPort: 50000
   selector:
     app: jenkins
 

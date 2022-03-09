@@ -24,7 +24,10 @@ eksctl create iamserviceaccount \
   --attach-policy-arn= $AUTOSCALER_POLICY_ARN \
   --override-existing-serviceaccounts \
   --approve
+#enable matrics
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 
+#enable autoscaler
 kubectl apply -f ./jenkins/cluster-autoscaler-autodiscover.yaml
 
 kubectl patch deployment cluster-autoscaler \
